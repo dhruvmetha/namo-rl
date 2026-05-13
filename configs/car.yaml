@@ -1,0 +1,15 @@
+scene_dir: scenes/car
+frame_skip: 5                       # MuJoCo substeps per env.step(); dt=0.002 → 10 ms control period
+max_episode_steps: 500
+
+goal_tolerance:
+  position: 0.05                    # meters; the goal site is ~0.014 m radius in the XMLs
+  heading: 3.1416                   # radians; default ignores heading (XYZ-only goal)
+
+action:
+  wheel_max: 25.0                   # rad/s; mirrors actuator ctrlrange in scene XMLs
+
+obs:
+  max_movables: 16                  # zero-padded with a parallel int8 mask
+
+seed: null                          # null → fresh randomness; int → deterministic
