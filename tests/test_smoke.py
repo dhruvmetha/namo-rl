@@ -27,7 +27,9 @@ def main() -> int:
     env = DiffDriveCarEnv(cfg)
 
     assert env.action_space.shape == (2,), env.action_space
-    assert set(env.observation_space.spaces.keys()) == {"robot", "goal", "movables", "mask"}
+    assert set(env.observation_space.spaces.keys()) == {
+        "robot", "goal", "movables", "mask", "last_action"
+    }
 
     rng = np.random.default_rng(42)
     causes: Counter[str] = Counter()

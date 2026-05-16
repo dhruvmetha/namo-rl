@@ -20,6 +20,8 @@ class _SceneIndex:
     model: mujoco.MjModel
     left_act: int
     right_act: int
+    left_wheel_dof: int                    # qvel index for left wheel hinge
+    right_wheel_dof: int                   # qvel index for right wheel hinge
     car_qpos_adr: int
     car_qvel_adr: int
     robot_body_ids: frozenset[int]
@@ -88,10 +90,15 @@ def _build_scene_index(model: mujoco.MjModel, cfg: EnvConfig) -> _SceneIndex:
     site_id = model.site("goal").id
     goal_xy = np.asarray(model.site_pos[site_id, :2], dtype=np.float64).copy()
 
+    left_wheel_dof = int(model.jnt_dofadr[model.joint("left_wheel_joint").id])
+    right_wheel_dof = int(model.jnt_dofadr[model.joint("right_wheel_joint").id])
+
     return _SceneIndex(
         model=model,
         left_act=int(model.actuator("left_wheel_drive").id),
         right_act=int(model.actuator("right_wheel_drive").id),
+        left_wheel_dof=left_wheel_dof,
+        right_wheel_dof=right_wheel_dof,
         car_qpos_adr=car_qpos,
         car_qvel_adr=car_qvel,
         robot_body_ids=robot_ids,
@@ -114,10 +121,22 @@ class DiffDriveCarEnv(gym.Env):
 
     metadata = {"render_modes": ["rgb_array"], "render_fps": 50}
 
-    def __init__(self, config: EnvConfig, render_mode: str | None = None):
+    def __init__(
+        self,
+        config: EnvConfig,
+        render_mode: str | None = None,
+        *,
+        render_size: tuple[int, int] = (480, 640),  # (H, W)
+        camera: str | int | mujoco.MjvCamera = -1,  # -1 = free, "top_down" = auto-fit overhead
+    ):
         super().__init__()
         self._cfg = config
         self.render_mode = render_mode
+        self._render_h, self._render_w = render_size
+        self._camera_spec = camera
+        self._camera_obj: mujoco.MjvCamera | None = None
+        self._renderer: mujoco.Renderer | None = None
+        self._renderer_model: mujoco.MjModel | None = None
 
         scene_dir = Path(config.scene_dir)
         if not scene_dir.is_absolute():
@@ -129,9 +148,12 @@ class DiffDriveCarEnv(gym.Env):
         self._model_cache: dict[Path, mujoco.MjModel] = {}
         self._rng = np.random.default_rng(config.seed)
 
-        wheel_max = float(config.action.wheel_max)
+        v_max = float(config.action.v_max)
+        w_max = float(config.action.w_max)
         self.action_space = Box(
-            low=-wheel_max, high=+wheel_max, shape=(2,), dtype=np.float32
+            low=np.array([-v_max, -w_max], dtype=np.float32),
+            high=np.array([+v_max, +w_max], dtype=np.float32),
+            dtype=np.float32,
         )
         n_max = int(config.obs.max_movables)
         self.observation_space = DictSpace(
@@ -140,6 +162,11 @@ class DiffDriveCarEnv(gym.Env):
                 "goal": Box(-np.inf, np.inf, (3,), dtype=np.float32),
                 "movables": Box(-np.inf, np.inf, (n_max, 3), dtype=np.float32),
                 "mask": Box(0, 1, (n_max,), dtype=np.int8),
+                "last_action": Box(
+                    low=np.array([-v_max, -w_max], dtype=np.float32),
+                    high=np.array([+v_max, +w_max], dtype=np.float32),
+                    dtype=np.float32,
+                ),
             }
         )
 
@@ -148,6 +175,9 @@ class DiffDriveCarEnv(gym.Env):
         self._data: mujoco.MjData | None = None
         self._step_count: int = 0
         self._current_xml: Path | None = None
+        # rate-limit state: previous commanded (v, ω). Reset to zero at reset().
+        self._v_prev: float = 0.0
+        self._w_prev: float = 0.0
 
     # ---- gym API --------------------------------------------------------------
 
@@ -169,16 +199,42 @@ class DiffDriveCarEnv(gym.Env):
         model = self._model_cache.get(xml_path)
         if model is None:
             model = mujoco.MjModel.from_xml_path(str(xml_path))
+            # Apply physics tuning: add reflected rotor inertia to the wheel
+            # joints. This brings the actuator response time onto the timestep
+            # scale, matching how published MuJoCo wheeled-robot models are
+            # set up (see Menagerie Stretch 3, Robot Soccer Kit). Without it,
+            # the wheel responds 250× faster than one mj_step and every ctrl
+            # change becomes an impulse to the chassis.
+            phys = self._cfg.physics
+            lw_dof = int(model.jnt_dofadr[model.joint("left_wheel_joint").id])
+            rw_dof = int(model.jnt_dofadr[model.joint("right_wheel_joint").id])
+            if phys.wheel_armature > 0.0:
+                model.dof_armature[lw_dof] = phys.wheel_armature
+                model.dof_armature[rw_dof] = phys.wheel_armature
+            if phys.wheel_damping > 0.0:
+                model.dof_damping[lw_dof] = phys.wheel_damping
+                model.dof_damping[rw_dof] = phys.wheel_damping
             self._model_cache[xml_path] = model
 
         scene = _build_scene_index(model, self._cfg)
         data = mujoco.MjData(model)
         mujoco.mj_forward(model, data)
+        # Settle the chassis onto the floor before exposing state to the agent.
+        # Spawn z is set above the floor in the XMLs; without this, the first
+        # env.step combines a drop transient with the wheel command and the
+        # chassis can briefly tumble.
+        data.ctrl[scene.left_act] = 0.0
+        data.ctrl[scene.right_act] = 0.0
+        for _ in range(100):  # 100 substeps ≈ 200 ms of zero-command settling
+            mujoco.mj_step(model, data)
+        data.qvel[:] = 0.0  # zero velocities after settling so step 1 starts at rest
 
         self._scene = scene
         self._data = data
         self._step_count = 0
         self._current_xml = xml_path
+        self._v_prev = 0.0
+        self._w_prev = 0.0
 
         obs = self._build_obs()
         info = {
@@ -193,10 +249,23 @@ class DiffDriveCarEnv(gym.Env):
         scene, data = self._scene, self._data
 
         a = np.asarray(action, dtype=np.float64).reshape(2)
-        wheel_max = float(self._cfg.action.wheel_max)
-        a = np.clip(a, -wheel_max, +wheel_max)
-        data.ctrl[scene.left_act] = a[0]
-        data.ctrl[scene.right_act] = a[1]
+        cfg_a = self._cfg.action
+        # Bound the commanded (v, omega) to the action-space envelope.
+        v_cmd = float(np.clip(a[0], -cfg_a.v_max, +cfg_a.v_max))
+        w_cmd = float(np.clip(a[1], -cfg_a.w_max, +cfg_a.w_max))
+        # Rate-limit: max change per env.step is accel_max * dt_env.
+        dt_env = self._cfg.frame_skip * float(scene.model.opt.timestep)
+        dv_max = cfg_a.v_accel_max * dt_env
+        dw_max = cfg_a.w_accel_max * dt_env
+        v_cmd = float(np.clip(v_cmd, self._v_prev - dv_max, self._v_prev + dv_max))
+        w_cmd = float(np.clip(w_cmd, self._w_prev - dw_max, self._w_prev + dw_max))
+        self._v_prev = v_cmd
+        self._w_prev = w_cmd
+        # Kinematic split → wheel velocity setpoints.
+        L_half = 0.5 * cfg_a.wheelbase
+        r = cfg_a.wheel_radius
+        data.ctrl[scene.left_act]  = (v_cmd - w_cmd * L_half) / r
+        data.ctrl[scene.right_act] = (v_cmd + w_cmd * L_half) / r
 
         for _ in range(self._cfg.frame_skip):
             mujoco.mj_step(scene.model, data)
@@ -234,7 +303,67 @@ class DiffDriveCarEnv(gym.Env):
         info["dist_to_goal"] = dist
         return obs, 0.0, terminated, truncated, info
 
+    def render(self) -> np.ndarray | None:
+        if self.render_mode != "rgb_array":
+            return None
+        assert self._scene is not None and self._data is not None, "call reset() first"
+        model, data = self._scene.model, self._data
+        if self._renderer is None or self._renderer_model is not model:
+            if self._renderer is not None:
+                self._renderer.close()
+            # MuJoCo's default offscreen framebuffer is 480x640; bump to fit.
+            if int(model.vis.global_.offheight) < self._render_h:
+                model.vis.global_.offheight = self._render_h
+            if int(model.vis.global_.offwidth) < self._render_w:
+                model.vis.global_.offwidth = self._render_w
+            self._renderer = mujoco.Renderer(
+                model, height=self._render_h, width=self._render_w
+            )
+            self._renderer_model = model
+            self._camera_obj = self._resolve_camera(model)
+        cam = self._camera_obj if self._camera_obj is not None else self._camera_spec
+        self._renderer.update_scene(data, camera=cam)
+        return self._renderer.render()
+
+    def _resolve_camera(self, model: mujoco.MjModel) -> mujoco.MjvCamera | None:
+        """Build a top-down MjvCamera fit to the current scene if requested.
+        Returns None to fall through to update_scene's int/string handling."""
+        if self._camera_spec != "top_down":
+            return None
+        # Fit overhead: lookat = world XY midpoint of all wall geoms; distance
+        # chosen so the half-extent + margin fits the camera's FOV.
+        wall_ids = self._scene.wall_body_ids if self._scene else set()
+        xs, ys = [], []
+        for g in range(model.ngeom):
+            if int(model.geom_bodyid[g]) in wall_ids:
+                p = model.geom_pos[g]
+                s = model.geom_size[g]
+                xs.extend([p[0] - s[0], p[0] + s[0]])
+                ys.extend([p[1] - s[1], p[1] + s[1]])
+        if not xs:
+            # fallback: world bounds via model.stat.extent
+            cx = cy = 0.0
+            half = float(model.stat.extent)
+        else:
+            cx = 0.5 * (min(xs) + max(xs))
+            cy = 0.5 * (min(ys) + max(ys))
+            half = max(max(xs) - min(xs), max(ys) - min(ys)) * 0.5
+        fovy_deg = float(model.vis.global_.fovy)
+        # vertical fit: distance = half / tan(fovy/2), with a 10% margin
+        dist = 1.1 * half / math.tan(math.radians(fovy_deg) * 0.5)
+        cam = mujoco.MjvCamera()
+        cam.type = mujoco.mjtCamera.mjCAMERA_FREE
+        cam.lookat[:] = [cx, cy, 0.0]
+        cam.distance = dist
+        cam.azimuth = 90.0      # +x right, +y up in image
+        cam.elevation = -90.0   # straight down
+        return cam
+
     def close(self) -> None:
+        if self._renderer is not None:
+            self._renderer.close()
+            self._renderer = None
+            self._renderer_model = None
         self._scene = None
         self._data = None
 
@@ -304,4 +433,11 @@ class DiffDriveCarEnv(gym.Env):
             movables[k, 2] = mtheta
             mask[k] = 1
 
-        return {"robot": robot, "goal": goal, "movables": movables, "mask": mask}
+        last_action = np.array([self._v_prev, self._w_prev], dtype=np.float32)
+        return {
+            "robot": robot,
+            "goal": goal,
+            "movables": movables,
+            "mask": mask,
+            "last_action": last_action,
+        }

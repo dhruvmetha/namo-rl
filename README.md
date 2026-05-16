@@ -16,6 +16,18 @@ pip install -e .
 python tests/test_smoke.py
 ```
 
+## Render demo videos
+
+Offscreen rendering needs an OpenGL context. On a node with a GPU + EGL:
+
+```bash
+MUJOCO_GL=egl PYOPENGL_PLATFORM=egl python tests/render_videos.py
+```
+
+Writes `tests/videos/<policy>__<scene>.mp4` for four policies (random, constant
+forward, spin-in-place, crude greedy-to-goal P controller) on every scene in
+`scenes/car/`.
+
 ## Layout
 
 ```

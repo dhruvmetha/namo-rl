@@ -1,15 +1,28 @@
 scene_dir: scenes/car
-frame_skip: 5                       # MuJoCo substeps per env.step(); dt=0.002 → 10 ms control period
+frame_skip: 25                      # MuJoCo substeps per env.step(); dt=0.002 → 50 ms control period (20 Hz)
 max_episode_steps: 500
 
 goal_tolerance:
-  position: 0.05                    # meters; the goal site is ~0.014 m radius in the XMLs
-  heading: 3.1416                   # radians; default ignores heading (XYZ-only goal)
+  position: 0.05                    # meters
+  heading: 3.1416                   # radians (π → ignore heading; XY-only goal)
 
 action:
-  wheel_max: 25.0                   # rad/s; mirrors actuator ctrlrange in scene XMLs
+  v_max: 0.1                        # m/s   — 4× prior 0.025; ~27% of r·ω_wheel ceiling (0.375)
+  w_max: 2.4                        # rad/s — 4× prior 0.6
+  v_accel_max: 0.2                  # m/s²  — 4× prior; ramps to v_max in ~0.5 s
+  w_accel_max: 4.0                  # rad/s² — 4× prior; ramps to w_max in ~0.6 s
+  wheel_radius: 0.015               # m, from car XML
+  wheelbase: 0.075                  # m, from car XML
 
 obs:
   max_movables: 16                  # zero-padded with a parallel int8 mask
+
+physics:
+  wheel_armature: 5e-4              # reflected rotor inertia (kg·m²) added to each wheel hinge.
+                                    # Bare wheel J is 6e-6; armature 5e-4 ≈ 80× that.
+                                    # Without this, the velocity actuator responds 250× faster
+                                    # than the timestep and the chassis gets kicked by every
+                                    # ctrl change. Matches scale of Menagerie Robot Soccer Kit.
+  wheel_damping: 0.0                # joint damping on each wheel hinge (Nm·s/rad); 0 = off
 
 seed: null                          # null → fresh randomness; int → deterministic
