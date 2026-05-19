@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="520" viewBox="0 0 520 520">
+<rect x="0" y="0" width="520" height="520" fill="#fafafa"/>
+<rect x="34.1" y="34.1" width="451.7" height="451.7" fill="white" stroke="#dddddd" stroke-width="1"/>
+<rect x="30.7" y="34.5" width="7.5" height="451.1" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="481.8" y="34.5" width="7.5" height="451.1" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="34.5" y="481.8" width="451.1" height="7.5" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="34.5" y="30.7" width="451.1" height="7.5" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="147.2" y="331.4" width="338.3" height="7.5" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="34.5" y="181.1" width="338.3" height="7.5" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="341.2" y="78.4" width="39.8" height="73.4" fill="#ffd95a" stroke="#aa7c10" stroke-width="0.7" transform="rotate(-297.19 361.1 115.1)"/>
+<rect x="389.9" y="393.1" width="69.2" height="41.2" fill="#ffd95a" stroke="#aa7c10" stroke-width="0.7" transform="rotate(-34.02 424.5 413.8)"/>
+<rect x="370.0" y="209.6" width="88.3" height="115.6" fill="#ffd95a" stroke="#aa7c10" stroke-width="0.7" transform="rotate(-85.06 414.1 267.4)"/>
+<line x1="116.4" y1="126.1" x2="455.2" y2="452.0" stroke="#e8881a" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="167.55648184818483" y1="175.0596" x2="179.55648184818483" y2="187.0596" stroke="red" stroke-width="2"/>
+<line x1="167.55648184818483" y1="187.0596" x2="179.55648184818483" y2="175.0596" stroke="red" stroke-width="2"/>
+<circle cx="455.2" cy="452.0" r="16.1" fill="rgba(255,0,0,0.18)" stroke="#cc0000" stroke-width="0.8"/>
+<circle cx="455.2" cy="452.0" r="3" fill="#cc0000"/>
+<line x1="116.4" y1="126.1" x2="139.0" y2="126.1" stroke="#0050d0" stroke-width="2.4"/>
+<circle cx="116.4" cy="126.1" r="4" fill="#0050d0"/>
+<text x="18" y="14" font-family="monospace" font-size="10" fill="#222">hop_3 | run_0048/env_0048_pair_000.xml  E=1.457  hit=0.246  G=3.640  G/E=2.50</text>
+</svg>

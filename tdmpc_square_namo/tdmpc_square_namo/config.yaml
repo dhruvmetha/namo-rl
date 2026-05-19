@@ -1,0 +1,307 @@
+defaults:
+    - override hydra/launcher: submitit_local
+
+# environment
+task: namo_car
+obs: state
+
+# NAMO-specific overrides (consumed by tdmpc_square_namo/envs/namo.py)
+namo:
+    scene_dir: null              # null -> external/namo-rl/scenes/car (default suite)
+    recursive_scene_glob: false  # true: rglob into nested run_*/ subdirs (hop_* suites)
+    render_height: 240
+    render_width: 320
+    render_camera: top_down
+    frame_skip: 25
+    max_episode_steps: 500
+    goal_position_tol: 0.05
+    goal_heading_tol: 3.1416
+    v_max: 0.1
+    w_max: 2.4
+    v_accel_max: 0.2
+    w_accel_max: 4.0
+    wheel_radius: 0.015
+    wheelbase: 0.075
+    max_movables: 16
+    wheel_armature: 5.0e-4
+    wheel_damping: 0.0
+    # Reward shaping (the upstream env returns 0.0; we wrap with a dense reward).
+    # `reward_style` selects the structure:
+    #   "additive"   — progress + ctrl penalty + ±terminal bonus (NAMO default,
+    #                  MyoSuite-style: unbounded, mixed-sign, explicit terminals).
+    #   "tolerance"  — DMControl/HumanoidBench-style. r = near_target × small_ctrl,
+    #                  both in [0, 1] via dm_control.utils.rewards.tolerance.
+    reward_style: "additive"
+    # Additive-style coefficients (used when reward_style == "additive").
+    reward_progress_coef: 10.0
+    reward_action_rate_coef: 0.01
+    reward_step_penalty: 0.0
+    reward_goal_bonus: 100.0
+    reward_wall_penalty: 10.0
+    # Tolerance-style parameters (used when reward_style == "tolerance").
+    reward_tolerance_margin: 1.0           # metres — tolerance ramps down over this distance
+    reward_tolerance_terminal_bonus: 0.0   # set >0 to give a discrete bonus on goal-hit
+    reward_tolerance_wall_penalty: 0.0     # set >0 to penalise wall hits explicitly
+
+# evaluation
+checkpoint: ???
+eval_episodes: 10
+eval_pi: true
+eval_value: false
+eval_freq: 25000
+
+# training
+steps: 1_000_000
+batch_size: 256
+reward_coef: 0.1
+value_coef: 0.1
+consistency_coef: 20
+rho: 0.5
+lr: 3e-4
+enc_lr_scale: 0.3
+grad_clip_norm: 20
+tau: 0.01
+discount_denom: 5
+discount_min: 0.95
+discount_max: 0.995
+buffer_size: 1_000_000
+data_dir: ./data/namo
+
+# planning
+mpc: true
+iterations: 6
+num_samples: 512
+num_elites: 64
+num_pi_trajs: 24
+horizon: 3
+min_std: 0.05
+max_std: 2
+temperature: 0.5
+
+# actor
+log_std_min: -10
+log_std_max: 2
+prior_coef: 1.0
+scale_threshold: 2.0
+entropy_coef: 1e-4
+awac_lambda: 0.3333
+exp_adv_min: 0.1
+exp_adv_max: 10.0
+
+# critic
+num_bins: 101
+vmin: -10
+vmax: +10
+
+# architecture
+model_size: 5
+num_enc_layers: 2
+enc_dim: 256
+num_channels: 32
+mlp_dim: 512
+latent_dim: 512
+task_dim: 96
+num_q: 5
+dropout: 0.01
+simnorm_dim: 8
+
+# Adaptive MPPI planner — vanilla TD-MPC² defaults (fixedA == constant-λ).
+lambda_uncertainty: 0.5
+lambda_uncertainty_max: 0.5
+lambda_uncertainty_floor: 0.0
+beta_uncertainty_max: 0.0
+beta_uncertainty: 0.2
+uncertainty_ema_tau: 0.01
+q_std_min: 1e-6
+q_std_max: 1e6
+planner_start_frac: 0.25
+planner_sharpness: 12.0
+planner_type: "fixedA"
+planner_noise_beta: 0.0
+planner_mppi_all_samples: false
+planner_gradient_steps: 0
+planner_es_sigma: 0.1
+planner_gradient_lr: 0.05
+
+# All extension modes off — vanilla TD-MPC-Square only.
+frontier_curriculum: false
+frontier_reset_prob: 0.3
+frontier_buffer_top_frac: 0.1
+frontier_position_range: [0.4, 0.75]
+frontier_start_step: 100000
+frontier_quality_threshold: 0.5
+frontier_min_pool_size: 50
+frontier_min_survive: 20
+frontier_adaptive_window: false
+frontier_adaptive_tau: 0.05
+frontier_adaptive_range: [0.75, 0.95]
+frontier_version: 1
+frontier_v2_value_gate_beta: 0.7
+frontier_v2_novelty_alpha: 1.0
+frontier_v2_novelty_k: 5
+frontier_v2_reset_prob_init: 0.1
+frontier_v2_reset_prob_floor: 0.01
+frontier_v2_reset_prob_ceil: 0.2
+frontier_v2_adapt_window: 20
+frontier_v2_min_start_fraction: 0.33
+frontier_v2_plateau_window_steps: 250000
+frontier_v2_plateau_min_points: 5
+frontier_v2_plateau_rel_slope: 0.10
+frontier_v2_plateau_rel_range: 0.15
+frontier_v2_plateau_improvement_eps: 0.05
+frontier_v2_plateau_min_step: 300000
+frontier_v2_plateau_confirm: 2
+frontier_v2_preflight_enable: true
+frontier_v2_preflight_n: 20
+frontier_v2_preflight_min_pass_rate: 0.5
+
+planner_elite_cov: false
+planner_elite_cov_rank: 10
+planner_elite_cov_residual: 0.25
+planner_elite_cov_start_step: 100000
+cma_activator_enable: true
+cma_activator_rstep_threshold: 0.30
+cma_activator_improvement_threshold: 0.20
+cma_activator_baseline_n_episodes: 50
+cma_activator_window_steps: 250000
+cma_activator_min_step: 100000
+cma_activator_min_points: 5
+cma_activator_confirm: 2
+
+planner_action_subspace: "none"
+planner_action_subspace_rank: 10
+planner_action_subspace_residual: 0.25
+planner_action_subspace_buffer_top_frac: 0.1
+planner_action_subspace_combine_weight: 0.5
+planner_action_subspace_update_freq: 1000
+planner_action_subspace_min_avg_reward: 0.3
+planner_action_subspace_min_eig_ratio: 2.0
+
+planner_truncated_imagination: false
+planner_imagination_max_horizon: 10
+planner_imagination_unc_threshold: 0.5
+
+multistep_td: false
+multistep_td_n: 3
+mtd_mode: "full"
+
+adaptive_horizon: false
+adaptive_horizon_extra: 3
+adaptive_horizon_threshold: 0.5
+
+planner_cvar: false
+planner_cvar_alpha: 0.25
+planner_cvar_activation_threshold: 1.0
+planner_cvar_activation_temp: 1.0
+
+# Actor / target Q aggregation — vanilla TD-MPC² (random-min for TD, random-avg for actor).
+actor_conservatism: true
+td_target_q_mode: "random_min"
+lambda_uncertainty_td_max: 0.5
+td_start_frac: 0.35
+td_sharpness: 12.0
+actor_td_start_frac: 0.45
+actor_td_sharpness: 12.0
+actor_q_mode: "random_avg"
+actor_uncertainty_coef: 0.2
+actor_uncertainty_max: 0.3
+actor_ucb_coef: 0.5
+actor_bottomk: 2
+alpha_td_floor: 0.0
+alpha_td_max: 1.0
+alpha_actor_floor: 0.0
+alpha_actor_max: 1.0
+
+# vanilla SAC-style actor (no residual / no relabel — keeps "vanilla TD-MPC²-Square" semantics).
+actor_mode: "sac"
+gate_target: "mu"
+gate_bc_coef: 1.0
+relabel_start_step: 100000
+relabel_every: 10
+relabel_frac: 0.1
+relabel_coef: 0.5
+relabel_adv_center: 0.0
+relabel_adv_temp: 1.0
+relabel_unc_center: 0.0
+relabel_unc_temp: 1.0
+relabel_gate_min: 0.0
+gate_adv_center: 0.0
+gate_adv_temp: 1.0
+gate_unc_center: 0.0
+gate_unc_temp: 1.0
+gate_stab_center: 0.35
+gate_stab_temp: 0.10
+gate_min: 0.0
+
+# logging
+wandb_project: tdmpc-square-namo
+wandb_entity: tns
+wandb_silent: false
+disable_wandb: false           # namo runs sync to wandb by default
+torch_compile: false
+torch_compile_mode: "default"
+save_csv: true
+
+log_noise_samples: false
+log_noise_every: 10000
+log_state_samples: false
+log_state_every: 5000
+log_q_probe: false
+log_q_probe_size: 30
+
+# misc
+save_video: true              # local mp4 (no wandb) — writes to <work_dir>/eval_video/
+video_fps: 15
+save_agent: true
+seed: 1
+
+# convenience (populated by parser)
+work_dir: ???
+task_title: ???
+multitask: ???
+tasks: ???
+obs_shape: ???
+action_dim: ???
+episode_length: ???
+obs_shapes: ???
+action_dims: ???
+episode_lengths: ???
+seed_steps: ???
+bin_size: ???
+
+# humanoid envs (unused here; required by upstream parser)
+policy_path: ???
+mean_path: ???
+var_path: ???
+policy_type: ???
+small_obs: ???
+
+# device
+device: "cuda:0"
+
+# Oracle MPC (disabled — no analytic oracle for this task).
+eval_oracle_mpc: false
+oracle_eval_episodes: 5
+oracle_horizons: [40]
+oracle_num_samples_list: [512]
+oracle_num_elites_list: [64]
+oracle_iterations_list: [6]
+oracle_init_std: 0.4
+oracle_min_std: 0.05
+oracle_max_std: 2.0
+oracle_temperature: 0.5
+oracle_weighted_update: true
+oracle_gamma: 0.99
+oracle_planner: cem
+oracle_noise_beta: 0.5
+oracle_gradient_lr: 0.05
+oracle_gradient_steps: 5
+oracle_es_sigma: 0.1
+oracle_save_video: false
+oracle_video_freq: 1
+oracle_video_fps: 15
+oracle_video_width: 256
+oracle_video_height: 256
+oracle_video_chunk_steps: 0
+
+exp_name: "vanilla_tdmpc_square_namo"

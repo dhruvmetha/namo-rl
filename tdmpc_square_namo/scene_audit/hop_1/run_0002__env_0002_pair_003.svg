@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="520" viewBox="0 0 520 520">
+<rect x="0" y="0" width="520" height="520" fill="#fafafa"/>
+<rect x="34.1" y="34.1" width="451.7" height="451.7" fill="white" stroke="#dddddd" stroke-width="1"/>
+<rect x="30.7" y="34.5" width="7.5" height="451.1" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="481.8" y="34.5" width="7.5" height="451.1" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="34.5" y="481.8" width="451.1" height="7.5" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="34.5" y="30.7" width="451.1" height="7.5" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="147.2" y="331.4" width="338.3" height="7.5" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="34.5" y="181.1" width="338.3" height="7.5" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="409.6" y="104.0" width="32.6" height="102.6" fill="#ffd95a" stroke="#aa7c10" stroke-width="0.7" transform="rotate(-269.53 425.9 155.3)"/>
+<rect x="188.7" y="74.6" width="102.3" height="66.1" fill="#ffd95a" stroke="#aa7c10" stroke-width="0.7" transform="rotate(-255.08 239.9 107.7)"/>
+<rect x="351.0" y="44.1" width="52.4" height="105.8" fill="#ffd95a" stroke="#aa7c10" stroke-width="0.7" transform="rotate(-71.93 377.2 96.9)"/>
+<line x1="448.8" y1="64.8" x2="303.6" y2="155.1" stroke="#e8881a" stroke-width="1" stroke-dasharray="4,3"/>
+<circle cx="303.6" cy="155.1" r="16.1" fill="rgba(255,0,0,0.18)" stroke="#cc0000" stroke-width="0.8"/>
+<circle cx="303.6" cy="155.1" r="3" fill="#cc0000"/>
+<line x1="448.8" y1="64.8" x2="471.3" y2="64.8" stroke="#0050d0" stroke-width="2.4"/>
+<circle cx="448.8" cy="64.8" r="4" fill="#0050d0"/>
+<text x="18" y="14" font-family="monospace" font-size="10" fill="#222">hop_1 | run_0002/env_0002_pair_003.xml  E=0.530  hit=inf  G=0.730  G/E=1.38</text>
+</svg>
