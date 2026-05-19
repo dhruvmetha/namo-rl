@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="520" viewBox="0 0 520 520">
+<rect x="0" y="0" width="520" height="520" fill="#fafafa"/>
+<rect x="34.1" y="34.1" width="451.7" height="451.7" fill="white" stroke="#dddddd" stroke-width="1"/>
+<rect x="30.7" y="34.5" width="7.5" height="451.1" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="481.8" y="34.5" width="7.5" height="451.1" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="34.5" y="481.8" width="451.1" height="7.5" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="34.5" y="30.7" width="451.1" height="7.5" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="147.2" y="331.4" width="338.3" height="7.5" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="34.5" y="181.1" width="338.3" height="7.5" fill="#888888" stroke="#444444" stroke-width="0.7"/>
+<rect x="137.3" y="219.5" width="50.3" height="79.5" fill="#ffd95a" stroke="#aa7c10" stroke-width="0.7" transform="rotate(-6.24 162.5 259.2)"/>
+<rect x="54.4" y="338.3" width="66.6" height="134.5" fill="#ffd95a" stroke="#aa7c10" stroke-width="0.7" transform="rotate(-0.27 87.7 405.5)"/>
+<rect x="320.1" y="231.5" width="131.4" height="43.7" fill="#ffd95a" stroke="#aa7c10" stroke-width="0.7" transform="rotate(-216.56 385.8 253.3)"/>
+<line x1="426.2" y1="293.9" x2="151.9" y2="390.7" stroke="#e8881a" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="313.8035777777778" y1="325.4222666666667" x2="325.8035777777778" y2="337.4222666666667" stroke="red" stroke-width="2"/>
+<line x1="313.8035777777778" y1="337.4222666666667" x2="325.8035777777778" y2="325.4222666666667" stroke="red" stroke-width="2"/>
+<circle cx="151.9" cy="390.7" r="16.1" fill="rgba(255,0,0,0.18)" stroke="#cc0000" stroke-width="0.8"/>
+<circle cx="151.9" cy="390.7" r="3" fill="#cc0000"/>
+<line x1="426.2" y1="293.9" x2="448.8" y2="293.9" stroke="#0050d0" stroke-width="2.4"/>
+<circle cx="426.2" cy="293.9" r="4" fill="#0050d0"/>
+<text x="18" y="14" font-family="monospace" font-size="10" fill="#222">hop_3 | run_0014/env_0014_pair_003.xml  E=0.901  hit=0.350  G=1.270  G/E=1.41</text>
+</svg>
